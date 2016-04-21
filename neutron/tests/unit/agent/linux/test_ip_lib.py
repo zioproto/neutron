@@ -253,13 +253,15 @@ class TestIpWrapper(base.BaseTestCase):
         fake_str = mock.Mock()
         fake_str.split.return_value = ['lo']
         mocked_execute.return_value = fake_str
-        retval = ip_lib.IPWrapper(namespace='foo').get_devices()
-        mocked_execute.assert_called_once_with(
-                ['ip', 'netns', 'exec', 'foo', 'find', '/sys/class/net',
-                 '-maxdepth', '1', '-type', 'l', '-printf', '%f '],
-                run_as_root=True, log_fail_as_error=True)
-        self.assertTrue(fake_str.split.called)
-        self.assertEqual(retval, [ip_lib.IPDevice('lo', namespace='foo')])
+        with mock.patch.object(ip_lib, 'IpNetnsCommand') as ip_ns_cmd:
+            ip_ns_cmd.exists.return_value = True
+            retval = ip_lib.IPWrapper(namespace='foo').get_devices()
+            mocked_execute.assert_called_once_with(
+                    ['ip', 'netns', 'exec', 'foo', 'find', '/sys/class/net',
+                     '-maxdepth', '1', '-type', 'l', '-printf', '%f '],
+                    run_as_root=True, log_fail_as_error=True)
+            self.assertTrue(fake_str.split.called)
+            self.assertEqual(retval, [ip_lib.IPDevice('lo', namespace='foo')])
 
     def test_get_namespaces(self):
         self.execute.return_value = '\n'.join(NETNS_SAMPLE)

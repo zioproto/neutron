@@ -92,16 +92,19 @@ class IPWrapper(SubProcessBase):
 
     def get_devices(self, exclude_loopback=False):
         retval = []
+        output = []
         if self.namespace:
-            # we call out manually because in order to avoid screen scraping
-            # iproute2 we use find to see what is in the sysfs directory, as
-            # suggested by Stephen Hemminger (iproute2 dev).
-            output = utils.execute(['ip', 'netns', 'exec', self.namespace,
-                                    'find', SYS_NET_PATH, '-maxdepth', '1',
-                                    '-type', 'l', '-printf', '%f '],
-                                   run_as_root=True,
-                                   log_fail_as_error=self.log_fail_as_error
-                                   ).split()
+            if self.netns.exists(self.namespace):
+                # we call out manually because in order to avoid screen
+                # scraping iproute2 we use find to see what is in the sysfs
+                # directory, as suggested by Stephen Hemminger (iproute2 dev).
+                output = utils.execute(['ip', 'netns', 'exec', self.namespace,
+                                        'find', SYS_NET_PATH, '-maxdepth', '1',
+                                        '-type', 'l', '-printf', '%f '],
+                                       run_as_root=True,
+                                       log_fail_as_error=self.log_fail_as_error
+                                       ).split()
+        # if self.namespace is not defined handle the default namespace devices
         else:
             output = (
                 i for i in os.listdir(SYS_NET_PATH)
